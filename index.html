@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0c0c0c"><title>ORSERIE</title>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f3efe8;--fg:#0c0c0c;--card:#ebe4d8;--line:rgba(12,12,12,.18)}
+@media (prefers-color-scheme:dark){:root{--bg:#0c0c0c;--fg:#f3efe8;--card:#181818;--line:rgba(243,239,232,.2)}}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:400 16px/1.55 'Space Grotesk',sans-serif;overflow-x:hidden;padding-top:env(safe-area-inset-top,0)}
+.d{font-family:'Anton',sans-serif;text-transform:uppercase;line-height:.95;font-weight:400}
+header{background:#0c0c0c;color:#f3efe8;padding:18px 20px;display:flex;justify-content:space-between;align-items:center}
+header b{font:400 26px 'Anton';letter-spacing:.04em}header span{font-size:12px;letter-spacing:.2em;color:#c8ff4d;text-transform:uppercase}
+.hero{background:#0c0c0c;color:#f3efe8;padding:34px 20px 44px}.hero h1{font-size:clamp(44px,14vw,84px)}.hero em{color:#c8ff4d;font-style:normal}.hero p{margin-top:14px;max-width:420px;opacity:.75}
+.btn{display:inline-block;border:2px solid var(--fg);background:#c8ff4d;color:#0c0c0c;font:700 14px 'Space Grotesk';text-transform:uppercase;letter-spacing:.06em;padding:11px 18px;box-shadow:4px 4px 0 #ff5a36;cursor:pointer;text-decoration:none}
+.btn.g{background:transparent;color:var(--fg);box-shadow:none;padding:7px 12px;font-size:12px}.hero .btn{margin-top:22px;border-color:#f3efe8}
+section{padding:34px 20px;border-bottom:1px solid var(--line)}h2{font-size:38px;margin-bottom:6px}.tag{font:700 11px 'Space Grotesk';letter-spacing:.2em;text-transform:uppercase;color:#ff5a36}
+.cat{margin-top:26px}.cat h3{font-size:28px}.cat p{opacity:.75;margin:4px 0 12px}
+.row{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:10px}
+.row figure{flex:0 0 72%;max-width:300px;scroll-snap-align:start;background:var(--card);border:2px solid var(--fg);position:relative}
+.row img{width:100%;aspect-ratio:3/4;object-fit:cover}.row figcaption{padding:8px;display:flex;justify-content:space-between;align-items:center;font-size:13px}
+.empty{padding:22px;border:2px dashed var(--line);opacity:.6;font-size:14px}
+.tbl{overflow-x:auto;margin-top:16px}table{width:100%;border-collapse:collapse;min-width:300px}
+th{background:#0c0c0c;color:#f3efe8;font:400 14px 'Anton';letter-spacing:.08em;text-transform:uppercase;text-align:left;padding:10px}
+td{padding:10px;border-bottom:1px solid var(--line)}td.p{font:400 20px 'Anton';text-align:right;white-space:nowrap}
+.note{margin-top:14px;font-size:14px;border-left:4px solid #c8ff4d;padding-left:12px}.ct{display:flex;flex-direction:column;gap:12px;margin-top:16px;align-items:flex-start}
+.adm{background:#c8ff4d;color:#0c0c0c;padding:10px 20px;font-size:13px;font-weight:700;display:none;justify-content:space-between;align-items:center}.adm.on{display:flex}
+.ed{display:none!important}.edit .ed{display:inline-block!important}
+.x{position:absolute;top:6px;right:6px;background:#ff5a36;color:#fff;border:0;width:28px;height:28px;font-weight:700}
+.fab{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0));background:#c8ff4d;color:#0c0c0c;border:2px solid #0c0c0c;box-shadow:4px 4px 0 #ff5a36;padding:13px 18px;font:700 14px 'Space Grotesk';text-transform:uppercase;text-decoration:none}
+footer{padding:26px 20px 90px;font-size:12px;opacity:.6;text-align:center}
+</style></head><body>
+<div class="adm" id="adm"><span id="admTxt">Mode propriétaire</span><button class="btn g" id="admBtn" style="color:#0c0c0c;border-color:#0c0c0c">Gérer</button></div>
+<div id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const sb=supabase.createClient('https://irtdeedwpshjnveouzvi.supabase.co','sb_publishable_5lN79HXQ3wLQmK-AEQt7jg_P_LWjE7U');
+let D={cats:[],designs:[],prices:[],set:{}},edit=false,logged=false,taps=0;
+const esc=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const wa=m=>'https://wa.me/'+(D.set.wa||'')+'?text='+encodeURIComponent(m);
+const fmt=n=>Number(n).toLocaleString('fr-FR');
+async function load(){
+  const [c,d,p,s]=await Promise.all([sb.from('categories').select().order('position'),sb.from('designs').select().order('id'),sb.from('prices').select().order('position'),sb.from('settings').select()]);
+  if(c.error){document.getElementById('app').innerHTML='<p style="padding:30px">Connexion impossible. Vérifie ta connexion internet.</p>';return}
+  D.cats=c.data;D.designs=d.data||[];D.prices=p.data||[];D.set=Object.fromEntries((s.data||[]).map(r=>[r.key,r.value]));render();
+}
+function render(){
+  const app=document.getElementById('app');app.className=edit?'edit':'';
+  const cats=D.cats.map((c,i)=>{const ds=D.designs.filter(x=>x.category_id===c.id);
+  return `<div class="cat"><h3 class="d">${esc(c.title)}</h3><p>${esc(c.description)}</p><div class="row">${ds.length?ds.map((x,j)=>`<figure><img loading="lazy" src="${esc(x.image_url)}" alt=""><button class="x ed" data-a="dd" data-id="${x.id}">×</button><figcaption><span>${esc(c.title)} ${String(j+1).padStart(2,'0')}</span><a class="btn g" href="${wa('Bonjour ORSERIE, je veux commander le design '+c.title+' '+String(j+1).padStart(2,'0')+'.')}">Commander</a></figcaption></figure>`).join(''):'<div class="empty">Bientôt de nouveaux designs ici.</div>'}</div>
+  <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><a class="btn g" href="${wa('Bonjour ORSERIE, je veux voir plus de designs de la collection "'+c.title+'".')}">Voir plus sur WhatsApp</a><label class="btn g ed">+ Photo<input type="file" accept="image/*" multiple hidden data-a="ph" data-id="${c.id}"></label><button class="btn g ed" data-a="dc" data-id="${c.id}">Supprimer</button></div></div>`}).join('');
+  const rows=D.prices.map(p=>`<tr><td>${esc(p.item)}</td><td>${esc(p.quality)}</td><td>${esc(p.weight)}</td><td class="p">${fmt(p.price)}<span class="ed"> <button class="btn g" data-a="ep" data-id="${p.id}">✎</button><button class="btn g" data-a="dp" data-id="${p.id}">×</button></span></td></tr>`).join('');
+  app.innerHTML=`<header><b id="logo">ORSERIE</b><span>We all special</span></header>
+  <div class="hero"><h1 class="d">Make everything <em>special</em></h1><p>Streetwear à designs uniques. Choisis ton design, commande sur WhatsApp.</p><a class="btn" href="${wa('Bonjour ORSERIE, je veux passer commande.')}">Commander</a></div>
+  <section><span class="tag">Collections</span><h2 class="d">Nos catalogues</h2>${cats}<div style="margin-top:20px"><button class="btn ed" data-a="nc">+ Nouveau catalogue</button></div></section>
+  <section><span class="tag">Grille tarifaire</span><h2 class="d">Combien ça coûte</h2><p>Prix en FCFA.</p><div class="tbl"><table><thead><tr><th>Article</th><th>Qualité</th><th>Poids</th><th style="text-align:right">Prix</th></tr></thead><tbody>${rows}</tbody></table></div><div style="margin-top:12px"><button class="btn ed" data-a="np">+ Nouveau tarif</button></div><p class="note">${esc(D.set.note)}</p></section>
+  <section><span class="tag">Contact</span><h2 class="d">Passer commande</h2><div class="ct"><a class="btn" href="${wa('Bonjour ORSERIE, je veux passer commande.')}">WhatsApp +${esc(D.set.wa)}</a><a class="btn g" href="mailto:${esc(D.set.email)}">${esc(D.set.email)}</a><button class="btn g ed" data-a="ec">Modifier les contacts</button></div></section>
+  <footer>© ORSERIE — We All Special</footer><a class="fab" href="${wa('Bonjour ORSERIE, je veux passer commande.')}">WhatsApp</a>`;
+  document.getElementById('logo').onclick=async()=>{if(logged||++taps<5)return;taps=0;const em=prompt('Email admin ?');if(!em)return;const pw=prompt('Mot de passe ?');const r=await sb.auth.signInWithPassword({email:em,password:pw});if(r.error)alert('Connexion refusée');else setAdmin(true)};
+}
+function setAdmin(v){logged=v;document.getElementById('adm').classList.toggle('on',v);}
+async function compress(f){const b=await createImageBitmap(f),k=Math.min(1,1400/Math.max(b.width,b.height)),c=document.createElement('canvas');c.width=b.width*k;c.height=b.height*k;c.getContext('2d').drawImage(b,0,0,c.width,c.height);return new Promise(r=>c.toBlob(r,'image/jpeg',.82))}
+const run=async(q)=>{const r=await q;if(r.error){alert('Erreur : '+r.error.message);return false}return true};
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-a]');if(!b||b.type==='file')return;const a=b.dataset.a,id=+b.dataset.id;let ok=true;
+  if(a==='nc'){const t=prompt('Nom du catalogue ?');if(!t)return;ok=await run(sb.from('categories').insert({title:t,description:prompt('Description courte ?')||'',position:D.cats.length+1}))}
+  else if(a==='dc'){if(!confirm('Supprimer ce catalogue et ses photos ?'))return;ok=await run(sb.from('categories').delete().eq('id',id))}
+  else if(a==='dd'){ok=await run(sb.from('designs').delete().eq('id',id))}
+  else if(a==='np'){const item=prompt('Article ?');if(!item)return;const price=parseInt(prompt('Prix en FCFA ?'),10);if(!price)return;ok=await run(sb.from('prices').insert({item,quality:prompt('Qualité (Haute / Moyenne) ?')||'',weight:prompt('Poids ?')||'',price,position:D.prices.length+1}))}
+  else if(a==='ep'){const p=D.prices.find(x=>x.id===id),price=parseInt(prompt('Nouveau prix en FCFA ?',p.price),10);if(!price)return;ok=await run(sb.from('prices').update({price}).eq('id',id))}
+  else if(a==='dp'){ok=await run(sb.from('prices').delete().eq('id',id))}
+  else if(a==='ec'){const v={wa:(prompt('Numéro WhatsApp (chiffres, avec indicatif) ?',D.set.wa)||D.set.wa).replace(/\D/g,''),email:prompt('Email ?',D.set.email)||D.set.email,note:prompt('Note livraison / conditions ?',D.set.note)||D.set.note};ok=await run(sb.from('settings').upsert(Object.entries(v).map(([key,value])=>({key,value}))))}
+  else return;
+  if(ok)load();
+});
+document.addEventListener('change',async e=>{
+  const f=e.target;if(f.dataset.a!=='ph')return;
+  for(const file of f.files){const blob=await compress(file),path=f.dataset.id+'/'+Date.now()+'-'+Math.random().toString(36).slice(2,7)+'.jpg';
+    const u=await sb.storage.from('designs').upload(path,blob,{contentType:'image/jpeg'});if(u.error){alert('Photo refusée : '+u.error.message);break}
+    await run(sb.from('designs').insert({category_id:+f.dataset.id,image_url:sb.storage.from('designs').getPublicUrl(path).data.publicUrl}))}
+  load();
+});
+document.getElementById('admBtn').onclick=()=>{edit=!edit;document.getElementById('admBtn').textContent=edit?'Terminer':'Gérer';render()};
+sb.auth.getSession().then(r=>{if(r.data.session)setAdmin(true)});load();
+</script></body></html>
